@@ -1,0 +1,47 @@
+node{
+
+ stage("Git Clone"){
+   git crdentialsid: 'GIT_CREDENTIALS', url: 'https://github.com/sivakumari868/spring-boot-web-application-sample.git'
+}
+ stage("Maven Clean Build"){
+ 
+ def mavenHome = tool name:"Maven-3.6.1", type: "maven"
+ def mavenCMD = "${mavenHome}/bin/mvn clean package"
+
+ sh "${mavenCMD}"
+
+
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+
+stage("Execute Sonar report"){
+sh "${mavenHome}/bin/mvn sonar:sonar"
+
+}
+
+stage("Build Docker Image"){
+
+sh "docker build -t sivakumarireg/spring-boot-web:1.0 ."
+
+
+}
+
+stage("Docker Push"){
+withCredentials(credentialsId: 'Docker_Hub_Credentials')
+sh "docker login -u sivakumarireg -p ${Docker_Hub_Credentials}
+}
+sh "docker push sivakumarireg/spring-boot-web "
+
+}
+stage("Deeploy application In k8s Cluster"){
+kubernetesDeploy(
+    configs: "Springboot.yml",
+    kubeconfigId: "KUBERNETES_CLUSTER_CONFIG",
+    enableConfigSubstitution: true
+
+}
+}
+stage("Deploy"){
+sh 'kubectl apply -f springboot.yml"
+}
+}
+
